@@ -59,7 +59,7 @@ ro.hardware.egl=mali
 #
 # Dogru cozum: stok firmware'deki GERCEK exynos5 modulu. vstage/lib/hw/
 # icinde duruyordu ve hicbir zaman kullanilmamisti:
-#   /run/media/msi/YEDEKLERIM/vstage/lib/hw/gralloc.exynos5.so
+#   <stock-vendor-dump>/lib/hw/gralloc.exynos5.so
 #   MD5 0b310609b828bc014d492efe42c5eedb, 25196 B
 # prebuilt/vendor/hw/gralloc.exynos5.so olarak kopyalandi. Ayni Oreo
 # surumunde derlendigi icin libGLES_mali.so ile private_handle duzeni
