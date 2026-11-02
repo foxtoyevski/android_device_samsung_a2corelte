@@ -31,3 +31,7 @@ Add this to `.repo/local_manifests/a2corelte.xml`, then run `repo sync`:
 ## Notes
 
 Prebuilt blobs in `prebuilt/` belong to their respective owners (Samsung etc.).
+
+## Kernel
+
+`prebuilt/kernel` and `prebuilt/kernel.stock` are prebuilt Linux kernel images. The Linux kernel is licensed under GPL-2.0. Source for the Samsung stock kernel is published by Samsung at https://opensource.samsung.com (search for SM-A260F). The exact source used to build `prebuilt/kernel` is not documented here. If you need it, please open an issue.
