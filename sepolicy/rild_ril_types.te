@@ -1,0 +1,15 @@
+# RIL/cbd vendor types (ported from stock nonplat_sepolicy.cil +
+# universal7870-common). A10 core sepolicy does not define these.
+type radio_block_device, dev_type;      # /dev/block/.../by-name/RADIO
+type mif_device, dev_type;              # /dev/umts_*
+type sysfs_mipi, fs_type, sysfs_type, mlstrustedobject;  # mipi-lli/lli_control
+type log_vendor_data_file, file_type, data_file_type;    # /data/vendor/log
+type radio_vendor_data_file, file_type, data_file_type;  # /data/vendor/secradio
+type bin_nv_data_efs_file, file_type;   # /efs/nv_data.bin
+type cbd_log_data, file_type;           # /efs/nv.log etc (stock type)
+
+# Samsung efs subdirs (stock nonplat_file_contexts / universal7870-common).
+type app_efs_file, file_type;           # /efs/FactoryApp, /efs/root
+type imei_efs_file, file_type;          # /efs/imei
+type prov_efs_file, file_type;          # /efs/prov
+type sec_efs_file, file_type;           # /efs/sec_efs, /cpefs

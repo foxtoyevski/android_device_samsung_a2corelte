@@ -1,0 +1,51 @@
+# Samsung Secure World tzdaemon (ported from stock nonplat_sepolicy.cil).
+type tzdaemon, domain;
+type tzdaemon_exec, exec_type, vendor_file_type, file_type;
+type tzdaemon_prop, property_type;
+type tz_socket, file_type;
+type tz_user_device, dev_type;
+type tz_device, dev_type;
+type tee_efs_file, file_type;
+type vaultkeeperd, domain;
+
+# /data/tee must be a core data type (sepolicy_tests requires every type
+# mapped under /data/ to carry core_data_file_type). The winning domain
+# (tzdaemon) and the platform tee daemon both need rw on it, so mark them as
+# sanctioned data_between_core_and_vendor_violators (the AOSP-approved
+# admission for such transitions).
+typeattribute tee_data_file core_data_file_type;
+typeattribute tzdaemon data_between_core_and_vendor_violators;
+typeattribute tee data_between_core_and_vendor_violators;
+
+init_daemon_domain(tzdaemon)
+
+# tmpfs for daemon scratch (tzdaemon_tmpfs via init_daemon_domain)
+
+# sockets
+allow tzdaemon tz_socket:sock_file write;
+allow tzdaemon self:unix_stream_socket connectto;
+allow tzdaemon self:fd use;
+allow tzdaemon property_socket:sock_file write;
+allow tzdaemon init:unix_stream_socket connectto;
+
+# properties
+allow tzdaemon tzdaemon_prop:file { getattr open read };
+allow tzdaemon tzdaemon_prop:property_service set;
+allow tzdaemon system_prop:property_service set;
+# A10'da property_contexts ile eslesen bir property type uzerinde file:{ioctl
+# lock} izni system/sepolicy/public/property.te icindeki neverallow'i ihlal
+# ediyordu. property_service set + file r_file_perms yeterli; ioctl/lock
+# kaldirildi.
+
+# tee data
+allow tzdaemon tee_data_file:dir rw_dir_perms;
+allow tzdaemon tee_data_file:file { rw_file_perms link };
+allow tzdaemon tee_efs_file:dir rw_dir_perms;
+allow tzdaemon tee_efs_file:file { rw_file_perms link };
+
+# secure world device nodes
+allow tzdaemon tz_user_device:chr_file rw_file_perms;
+allow tzdaemon tz_device:chr_file rw_file_perms;
+
+# binder transfer to vaultkeeperd
+allow tzdaemon vaultkeeperd:binder transfer;

@@ -1,0 +1,19 @@
+#
+# init.vendor.rilcommon.rc - A10 (LOS17.1)
+#
+# Community (samsungexynos7870 / universal7870-common@lineage-17.1) yapisindan
+# alindi + tek SIM duragi.
+#
+# Notu: "on property:hwservicemanager.ready=false restart ril-daemon" (LOS16
+# donemi kalintisi) KASITLI KALDIRILDI. A10'da hwservicemanager.ready hicbir
+# zaman "false" olmaz (servicemanager onu yalnizca "true" yapar; A2 boot logunda
+# da hic gecis yok). Ustelik bu kural ATESE de boot_done'dan ONCE (prop ilk
+# okunmada) rild'i erken baslatip belgelenen EventScheduler SIGSEGV crash'ini
+# tetiklerdi. rild baslangici yalnizca init.vendor.rilchip.rc + init.lineage.ril.rc
+# uzerinden ril.cbd.boot_done=1 tetikleyicisine baglidir.
+
+on post-fs-data
+    mkdir /data/vendor/secradio 0770 radio radio
+
+on property:ro.multisim.simslotcount=1
+    stop ril-daemon1

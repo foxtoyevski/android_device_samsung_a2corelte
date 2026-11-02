@@ -1,0 +1,25 @@
+# a2corelte (SM-A260F) portu: Samsung Exynos kamera HAL'i kamera
+# sensor kimliklerini ve kamera firmware durumunu sysfs uzerinden okuyor:
+#   /sys/class/camera/front/front_sensorid
+#   /sys/class/camera/rear/rear_sensorid
+#   /sys/class/camera/rear/rear_sensorid_exif
+#   /sys/class/camera/rear/rear2_sensorid_exif
+#   /sys/class/camera/front/front_camfw, front_caminfo, front_camtype
+#   /sys/class/camera/rear/rear_camfw, rear_caminfo, rear_camtype, rear_moduleid
+#   /sys/class/camera/rear/rear_checkfw_user, rear_checkfw_factory
+#   /sys/class/camera/rear/rear_sensor_standby, rear_afcal, rear_calcheck
+#
+# Bu dugumler kernel'in "virtual camera" cihazini uretiyor ve standart
+# u:object_r:sysfs:s0 etiketi tasiyor. AOSP policy'sinde vendor kamera HAL'i
+# icin tanimli olmadigi icin HAL'in open() cagrisi SELinux tarafindan
+# reddediliyor ve kamera HAL'i acilamiyor:
+#   E/ExynosCameraUtils: getSensorIdFromFile: failed to open sysfs entry
+#   E/ExynosCamera3SensorInfo: Unknown sensor, Return NULL
+#   E/ExynosCamera3Interface: HAL_getCameraInfo: static information is NULL
+#   -> cameraserver yeniden basliyor
+#
+# write/ioctI de gerekli: HAL kamera firmware'ini bu dugumler uzerinden
+# yukler (rear_camfw) ve sensor'u bekleme moduna alir (rear_sensor_standby).
+allow hal_camera_default sysfs:dir { getattr open read search };
+allow hal_camera_default sysfs:file { getattr open read write ioctl };
+allow hal_camera_default sysfs:lnk_file { getattr read };

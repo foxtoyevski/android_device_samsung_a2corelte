@@ -1,0 +1,30 @@
+# ril-daemon tetikleyicisi.
+#
+# Samsung'un /vendor/etc/init/init.vendor.rilchip.rc dosyasi servisi
+# "disabled" olarak tanimliyor ve agacin hicbir yerinde "start ril-daemon"
+# cagrisi yok. Servis taniminin kendisi paketleniyor; buradaki yalnizca bir
+# "start" tetikleyicisi, bu yuzden init'in hangi dosyada parse edildigine
+# bagli degildir.
+#
+# KRITIK ZAMANLAMA (olculmus boot timeline'i, 2026-10-08):
+#   boot +10.5s : cpboot-daemon=running -> eski tetikleyici start ril-daemon
+#                 rild erken basladi; CP kanali kapali ("SendDrkCpInfo: Open
+#                 Error"), framework istekleri gelince libsec-ril EventScheduler
+#                 bos kuyruga dokunup SIGSEGV oluyor:
+#                   libsec-ril.so List::RemoveAtHead()+28 (NULL deref)
+#                   libsec-ril.so EventScheduler::DoSchedule()+74
+#                 rild crashta -> serviceDied -> RADIO_NOT_AVAILABLE -> sim ABSENT.
+#   boot +19.3s : CP (ss315ap) ONLINE, shmem umts_ipc0/umts_rfs0 acildi
+#   boot +20.1s : ril.cbd.boot_done=1  <-- rild icin DOGRU an (CP hazir)
+#   boot +25.2s : sys.boot_completed=1 <-- fallback
+#
+# Bu yuzden erken tetikleyiciler (cpboot running / rfs_check_done) KALDIRILDI;
+# rild yalnizca CP boot_done sonrasi baslatilir.
+#
+# "start" idempotenttir: calisan servisi yeniden baslatmaz.
+
+on property:ril.cbd.boot_done=1
+    start ril-daemon
+
+on property:sys.boot_completed=1
+    start ril-daemon

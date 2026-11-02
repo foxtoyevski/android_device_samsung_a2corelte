@@ -1,0 +1,55 @@
+{
+  "update_version": 1,
+  "note": "enable RCS UP1.0",
+  "imsprofile_update": {
+    "profile": [
+      {
+       "name": "Vodafone Turkey RCS",
+       "mnoname": "Vodafone_TR",
+        "rcs_profile": "UP_1.0",
+        "network": [
+        {
+          "type": "lte,umts,hspa,wifi",
+          "services": [
+            "im",
+            "ft",
+            "ft_http",
+            "is",
+            "vs",
+            "options",
+            "euc",
+            "ec",
+            "gls"
+          ],
+          "enabled": true
+        },
+        {
+          "type": "gsm",
+          "services": [
+            "im",
+            "ft",
+            "ft_http",
+            "options",
+            "euc",
+            "gls"
+          ],
+          "enabled": true
+        }
+        ]
+      }
+    ]
+   },
+   "globalsettings_update": {
+    "defaultsetting": {
+    },
+    "nohitsetting": {
+    },
+    "globalsetting": [
+      {
+      "mnoname": "Vodafone_TR",
+      "rcs_show_master_switch": 1,
+      "rcs_up_profile": "UP_T-b1"
+      }
+    ]
+  }
+}

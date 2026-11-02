@@ -1,0 +1,12 @@
+# Android fstab file.
+# The filesystem that contains the filesystem checker binary (typically /system) cannot
+# specify MF_CHECK, and must come before any filesystems that do specify MF_CHECK
+
+/dev/block/platform/13540000.dwmmc0/by-name/SYSTEM    /system      ext4    ro,errors=panic,block_validity    wait
+/dev/block/platform/13540000.dwmmc0/by-name/VENDOR    /vendor      ext4    ro                               wait,nofail
+/dev/block/platform/13540000.dwmmc0/by-name/CACHE     /cache       ext4    rw                               wait,check
+/dev/block/platform/13540000.dwmmc0/by-name/USERDATA  /data        ext4    rw                               wait,check
+/dev/block/platform/13540000.dwmmc0/by-name/EFS       /efs         ext4    rw                               wait,check
+#CPEFS line removed: not formatable on this device
+/dev/block/platform/13540000.dwmmc0/by-name/BOOT      /boot        emmc    defaults                        wait
+/dev/block/platform/13540000.dwmmc0/by-name/RECOVERY  /recovery    emmc    defaults                        wait

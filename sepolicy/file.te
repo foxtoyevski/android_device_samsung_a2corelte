@@ -1,0 +1,13 @@
+type sysfs_light, fs_type, sysfs_type, mlstrustedobject;
+
+# sswap/vnswap sysfs node'u (/sys/block/vnswap0 -> /devices/virtual/block/vnswap0)
+type sysfs_sswap, sysfs_type, fs_type, mlstrustedobject;
+
+# /dev/stune (schedtune) - bu cihazda cgroupfs yerine tmpfs uzerinde duruyor,
+# bu yuzden AOSP'nin "genfscon cgroup" etiketi uygulanmiyor ve dosyalar genel
+# "device" tipine dusuyor. Sonuc: zygote/netd/installd/storaged/gsid/adbroot gibi
+# coredomain'ler "foreground/tasks"a yazarken
+#   neverallow { coredomain ... } device:file no_rw_file_perms
+# yasagina takiliyor. Dogru cozum (allow eklemek degil) bu yolu KENDI tipine
+# etiketlemek; boylece generic "device" neverallow'u devre disi kalir.
+type stune_file, file_type;

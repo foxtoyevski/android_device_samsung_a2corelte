@@ -1,0 +1,278 @@
+# Android Go / low RAM configuration
+#
+# NOT: ro.config.low_ram=true bilerek TUTULDU. Cihazda gercekten ~1 GB RAM
+# var (MemTotal 885 MB) ve dusuk-RAM modu lmkd'yi agresif tutarak uygulama
+# baslatma sureclerini olumlu etkiliyor. Mali GPU icin bellek sikisligi
+# low_ram'in bir sonucu degil, asil sorun GL kaynak tahsisi (asagida).
+ro.config.low_ram=true
+ro.lmk.kill_heaviest_process=1
+ro.lmk.quickreclaim=1
+ro.sys.fw.bg_apps_limit=12
+
+# Samsung Exynos7870
+ro.boot.bootdevice=13540000.dwmmc0
+ro.chipname=exynos7870
+ro.arch=exynos7870
+
+# EGL/GLES user-space surucusu secimi.
+# Android 10 EGL loader'i (frameworks/native/opengl/libs/EGL/Loader.cpp:181)
+# bu property'den surucu dosya adini turetir ve /vendor/lib/egl/
+# libGLES_mali.so'yu arar; bulunca EGL + GLESv1_CM + GLESv2'yi tek kutuphaneden
+# baslatir. Bu deger system/build.prop'ta OLMALIDIR: vendor'daki "ro.*"
+# property'leri Treble'da property_service tarafindan reddedilir.
+# Bos kalirsa loader ro.board.platform (exynos5) ile libGLES_exynos5.so arar,
+# bulamaz ve surfaceflinger "couldn't find an OpenGL ES implementation" ile
+# SIGABRT atarak sistemi dusurur.
+#
+# Bu deger ZORUNLU: bos birakilirsa loader ro.board.platform (exynos5) ile
+# libGLES_exynos5.so arar, bulamaz ve surfaceflinger "couldn't find an OpenGL ES
+# implementation" ile 5 saniyede bir SIGABRT atarak dongu yaratir.
+ro.hardware.egl=mali
+
+# gralloc secimi - private_handle ABI'si Mali ile eslestiriliyor.
+#
+# A10'un HIDL allocator servisi (android.hardware.graphics.allocator@2.0)
+# legacy gralloc0 modulunu hw_get_module(GRALLOC_HARDWARE_MODULE_ID) ile
+# yukler; bu da once "ro.hardware.gralloc" property'sine, bos kalirsa
+# gralloc.default.so'ya bakar
+# (hardware/interfaces/graphics/allocator/2.0/utils/passthrough/
+#  include/allocator-passthrough/2.0/GrallocLoader.h).
+#
+# Bu property bos birakilirsa agacin kendi A10 gralloc.default.so'su
+# (hardware/libhardware/modules/gralloc) yukleniyor ve private_handle_t
+# duzeni Oreo ile uyusmadigi icin Mali surucusu handle'lari reddediyor:
+#   E : invalid gralloc handle (at 0x...)
+#   E : Runtime and build version of gralloc private structure does not match
+#
+# ONEMLI - 2025-10-05 duzeltmesi:
+# Once buraya yanlis BAYT konmusutu: stok "gralloc.default.so"
+# (MD5 d710c8a5bad7f548614d3fe71baad5e6, 21108 B) dosya adi
+# "gralloc.exynos5.so" olarak kurulmustu. Bu modul "exynos5" adiyla
+# kayit oldugu halde private_handle_t duzeni *default* olaninkiyle
+# eslesiyordu. libGLES_mali.so ise derleme zamaninda kendi gralloc
+# surumunu gomulu tasidigi icin her buffer'da reddediyordu:
+#   E : Runtime and build version of gralloc private structure does not
+#       match for handle 0x... Errors will likely follow.
+#   E : GL error:  Out of memory!   (her mismatch'in hemen ardindan)
+#   F : GL errors! SkiaOpenGLPipeline.cpp:126  -> surekli uygulama cokmesi
+# Bu, tum ekranin siyah kalmasinin ve GL_OUT_OF_MEMORY'nin KOK nedeniydi.
+#
+# Dogru cozum: stok firmware'deki GERCEK exynos5 modulu. vstage/lib/hw/
+# icinde duruyordu ve hicbir zaman kullanilmamisti:
+#   /run/media/msi/YEDEKLERIM/vstage/lib/hw/gralloc.exynos5.so
+#   MD5 0b310609b828bc014d492efe42c5eedb, 25196 B
+# prebuilt/vendor/hw/gralloc.exynos5.so olarak kopyalandi. Ayni Oreo
+# surumunde derlendigi icin libGLES_mali.so ile private_handle duzeni
+# birebir ortusuyor.
+#
+# Agacin kendi A10 gralloc.default.so'su ile dosya yolu cakismasinin
+# (Soong "overriding commands" hatasi) onune gecmek icin stok blob ayni
+# yere "gralloc.exynos5.so" adiyla kuruluyor: hw_get_module yalnizca o adi
+# arar, icerik dosya adindan etkilenmez.
+#
+# Not: /dev/mali0 icin SELinux etiketi de gerekliydi (gpu_device); onun
+# icin bkz. sepolicy/file_contexts ve sepolicy/gpu_mali.te.
+ro.hardware.gralloc=exynos5
+
+# HWComposer secimi - KRITIK.
+# android.hardware.graphics.composer@2.2-service, HwcLoader ile HWC modulunu
+# yuklemeye calisir (hardware/interfaces/graphics/composer/2.1/utils/
+# passthrough/include/composer-passthrough/2.1/HwcLoader.h:100). Sirasi:
+#   1) hw_get_module(HWC_HARDWARE_COMPOSER)
+#   2) acilamazsa "falling back to gralloc module" -> adaptGrallocModule()
+#      -> framebuffer_open(gralloc) -> HWC2OnFbAdapter
+# Bu portta vendor'da HWC modulu YOKTI, bu yuzden hep 2. yol kullaniliyordu.
+# HWC2OnFbAdapter, postBuffer() icinde mFbDevice->post() yani gralloc'in
+# fb_post()'unu cagirir. Stok gralloc.exynos5.so ile denendi:
+#   F libc: Fatal signal 11 (SIGSEGV) ... in composer@2.2-se
+#     #01 gralloc.exynos5.so (fb_post(...)+106)   <- __memcpy_a53 tasmasi
+#     #02 libhwc2onfbadapter.so (presentDisplayHook+32)
+#     #03 composer@2.2-service (presentDisplay+40)
+#   E gralloc : invalid gralloc handle (at 0x0)
+# Sebep: Samsung'un Pie-era HWC1.5 HAL'i (hwcomposer.exynos5.so) framebuffer'i
+# kendisi yonetiyor; exynos5 gralloc'un fb_post'u o HAL ile birlikte
+# calisacak sekilde yazilmis. HWC2OnFbAdapter yolu bu sozlesmeye uymuyor.
+#
+# Dogru yol stok Pie yolu: hwcomposer.exynos5.so (HWC1.5) acilir ve
+# adaptHwc1Device() -> HWC2On1Adapter kullanilir. Bu, stok ROM'daki ile
+# birebir ayni yoldur.
+ro.hardware.hwc=exynos5
+
+# HWUI kismi (partial) guncelleme - PERFORMANS icin ACILDI.
+# Yalnizca degisen ekran bolgeleri yeniden cizilir (dirty-rect / buffer age);
+# bu, GPU/CPU yukunu ve guc tuketimini dusurup arayuzu akici hale getirir.
+# Bring-up'ta bir workaround olarak "false" yapilmisti; LOS 17 optimum icin
+# "true". NOT: Bu Exynos HWC1.5 yolunda buffer-age sorun cikarirsa ekranda
+# bozulma/yirtilma (tearing) gorulebilir; o durumda tekrar "false" yapip
+# yeniden derlemek yeterlidir (tek satir).
+debug.hwui.use_partial_updates=true
+
+# NOT: Burada daha once "debug.hwui.texture_cache_size", "layer_cache_size",
+# "fbo_cache_size" gibi bir grup cache property'si denenmisti. Bunlar
+# HAYALIYDI: frameworks/base/libs/hwui icinde hicbir yerde okunmuyorlar
+# (grep ile dogrulandi). Gercekten taranan tek HWUI property'leri:
+#   debug.hwui.level, .renderer, .profile, .overdraw, .render_ahead,
+#   .use_buffer_age, .use_partial_updates, .use_gpu_pixel_buffers,
+#   .skip_empty_damage, .capture_skp_*, .skia_atrace_enabled,
+#   .show_dirty_regions, .show_layers_updates, .filter_test_overhead
+# Gercek GPU cache siniri koddan gelir:
+#   frameworks/base/libs/hwui/renderthread/CacheManager.cpp:43
+#     #define SURFACE_SIZE_MULTIPLIER (12.0f * 4.0f)
+#   mMaxResourceBytes = ekran_alani * 48  (540x960 -> ~24.9 MB)
+# Bu deger duşuk-RAM cihazlar icin cok yuksek; lakin asil OOM nedeni
+# gralloc private_handle ABI uyumsuzlugu idi (baska dosyada cozuldu).
+debug.hwui.use_gpu_pixel_buffers=true
+
+# ART/Dex2oat - 8 cekirdekli SoC'te dex2oat'i 4 paralel is parcacigiyla kos.
+# Uygulama kurulumu ve ilk-boot optimizasyonu (dex2oat) hizlanir; cihazda
+# uygulama baslatma gecikmesi azalir.
+dalvik.vm.dex2oat-threads=4
+dalvik.vm.image-dex2oat-threads=4
+
+# Java/ART heap limitleri - KRITIK DUZELTME.
+# Bu cihaz device/samsung/universal7870-common/vendor_prop.mk dosyasini
+# inherit ETMEDIGI icin dalvik.vm.heap* property'leri HIC uretilmiyordu; ART
+# bunlari bulamayinca cok kucuk varsayilan heap (growth limit ~16 MB) ile
+# basliyordu. Sonuc: agir uygulamalar (Instagram Lite Reels vb.) GC
+# thrashing + java.lang.OutOfMemoryError ile cokuyor, arayuz donuyordu.
+# Degerler stok Samsung Android 10 firmware'inin build.prop'undan birebir
+# alindi (vstage/build.prop): heapgrowthlimit=96m / heapsize=256m, yani
+# 1 GB cihaz icin AOSP phone-xhdpi-1024-dalvik-heap profiliyle ayni.
+dalvik.vm.heapstartsize=8m
+dalvik.vm.heapgrowthlimit=96m
+dalvik.vm.heapsize=256m
+dalvik.vm.heaptargetutilization=0.75
+dalvik.vm.heapminfree=512k
+dalvik.vm.heapmaxfree=8m
+
+# --- universal7870-common/vendor_prop.mk eksik platform prop'lari ----------
+# a2corelte o common makefile'i inherit etmedigi icin asagidaki platform
+# degerleri hic uretilmiyordu (cihazda hepsi bos). Degerler universal7870-
+# common/vendor_prop.mk'ten alindi; dusuk riskli + performans/compat etkili
+# olanlar secildi:
+#   ro.opengles.version : Mali-T830 = GLES 3.2. Eksikse framework/HWUI GLES
+#                         2.0 yoluna duser (GPU yetenegi ve arayuz kaybi).
+#   sys.use_fifo_ui     : UI thread'i SCHED_FIFO ile calistirir (tepkisellik).
+#   af.fast_track_multiplier : AudioFlinger fast-track (ses gecikmesi).
+#   dex2oat-filter=speed : AOT derlemeyi "speed" ile yap (calisma zamani hizli).
+# NOT: debug.hwc.skip_dma_types, debug.sf.latch_unsignaled, persist.media.
+# treble_omx ve audio_hal.force_voice_config BILINCLI olarak eklenmedi; ilk
+# ucu bu portun ayri cozulen ekran/OMX yollarini etkiler (riskli), sonuncusu
+# calisan gorusme ses konfigurasyonunu degistirir.
+ro.opengles.version=196610
+sys.use_fifo_ui=1
+af.fast_track_multiplier=1
+dalvik.vm.dex2oat-filter=speed
+dalvik.vm.image-dex2oat-filter=speed
+
+# memtrack legacy HAL secimi. hw_get_module("memtrack") once bu property'ye
+# bakar ve /vendor/lib/hw/memtrack.<deger>.so dosyasini arar; deger bos kalirsa
+# ro.hardware/ro.product.board varyantlarina ve en sonunda
+# memtrack.default.so'ya duser. Exynos HAL'i "memtrack.exynos5.so" adiyla
+# geliyor, bu yuzden deger "exynos5" olmak zorunda. Yanlis/eksik secim ->
+# hw_get_module -ENOENT doner, HIDL passthrough null doner, servis restart
+# dongusune girer ve system/libmemtrack IMemtrack::getService() sonsuz bekler.
+ro.hardware.memtrack=exynos5
+
+# power / lights legacy HAL secimi. Ayni hw_get_module mekanizmasi:
+# once "ro.hardware.<class>" property'sine bakar, sonra ro.hardware /
+# ro.product.board varyantlarina, en sonunda <class>.default.so'ya duser.
+# Stok Oreo HAL'leri universal7870_go / exynos5 adlarini tasiyor ve
+# generic fallback'ler (power.default.so) Exynos PMIC'i surmemiyor.
+# LIGHTS_HARDWARE_MODULE_ID = "lights" (coklu), POWER = "power".
+ro.hardware.power=universal7870_go
+ro.hardware.lights=exynos5
+ro.hardware.sensors=universal7870_go
+
+# Kamera HAL secimi. hw_get_module("camera") once "ro.hardware.camera"
+# property'sine bakar -> /vendor/lib/hw/camera.<deger>.so.
+# Bos kalirsa A10 legacy provider'in mModule'u NULL kaliyor ve
+# CameraModule::notifyDeviceStateChange() null dereference ile provider
+# servisini SIGSEGV ile dusuruyordu.
+ro.hardware.camera=universal7870_go
+
+# Primary ses HAL'i. hw_get_module("audio", "primary") once
+# "ro.hardware.audio.primary" property'sine bakar -> audio.primary.<deger>.so.
+# Generic audio.primary.default.so Exynos codec yiginini surmediigi icin
+# stok HAL'i seciliyor.
+ro.hardware.audio.primary=universal7870_go
+ro.lcd_density=240
+persist.sys.usb.config=mtp,adb
+dev.usbsetting.embedded=On
+ro.hardware.keystore=mdfpp
+ro.security.keystore.keytype=gak
+# Single-SIM: modem/SS310 is a single hardware SIM slot (MISC_SSDS_ONEHW_SIM_SLOT_COUNT=01).
+# Keep the framework single-slot so the shared libsec-ril radio isn't driven
+# as two independent radios (which hung RADIO_POWER/GET_SIM_STATUS on slot0).
+ro.multisim.simslotcount=1
+
+# RIL (Samsung/Oreo 32-bit yigini) property'leri
+# Onceki surumde PRODUCT_VENDOR_PROPERTIES kullaniliyordu; bu agacta
+# o degisken okunmadigi icin degerler hicbir yere yazilmamis ve
+# ril-daemon "cannot expand ${vendor.sec.rild.libpath}" ile hic
+# baslamiyordu. init.vendor.rilchip.rc de dogrudan yola sabitlendi.
+rild.libpath=/vendor/lib/libsec-ril.so
+rild.libargs=-d
+exynos.ril.modempath=/dev/block/mmcblk0p5
+exynos.ril.nvpath=/efs/
+
+# Radio / RIL parite - universal7870-common/vendor_prop.mk "Radio" blogu
+#
+# a2corelte, universal7870-common'i inherit ETMEDIGI icin (bkz. device.mk
+# notu: o agac yalnizca a3y17lte tarafindan inherit ediliyor) o blogun
+# TAMAMI bu hedefte hic uygulanmiyordu. Asagidaki satirlar o blogun tek-SIM
+# uyarlanmis halidir (ro.vendor.multisim.simslotcount=2 BILEREK ALINMADI;
+# cihaz tek hardware SIM slotlu).
+#
+# ro.telephony.default_network=9 -> LTE:
+#  Framework bu prop'tan `settings global preferred_network_mode=9` uretir ve
+#  modem modu farkliysa boot'ta REQUEST_SET_PREFERRED_NETWORK_TYPE(9)
+#  gonderir. Samsung libsec-ril bu istegi GEC isler; ilk flash sonrasi boot'ta
+#  bu yuzden gecici "servis yok" (radyo POWER_OFF) penceresi olur, ardindan
+#  modem LTE'ye oturur. Modem modu 9'a gectikten sonra sonraki (ilik)
+#  reboot'larda SET tekrar GONDERILMEZ ve LTE ~12-15 sn'de gelir
+#  (2026-10-12 dogrulandi: 5 dk boyunca stabil IN_SERVICE/LTE).
+#  Deger KALDIRILIRSA framework SET gondermez, servis hizli gelir ama modem
+#  firmware varsayilaninda kalir -> LTE YOK, 2G/3G'de oynar.
+ro.telephony.default_network=9
+ro.telephony.get_imsi_from_sim=true
+ro.ril.hsxpa=1
+ro.ril.gprsclass=10
+ro.ril.telephony.mqanelements=6
+ro.ril.force_eri_from_xml=true
+persist.radio.sib16_support=0
+persist.radio.add_power_save=1
+persist.radio.apm_sim_not_pwdn=1
+ro.smps.enable=true
+telephony.lteOnCdmaDevice=0
+
+# Samsung OMC / CSC (SIFRELI CSC dosyalari ile birlikte calisir)
+ro.csc.sales_code=TUR
+ro.csc.omcnw_code=TUR
+ro.omc.region=TUR
+
+# Build tags - banner/Settings'te "test-keys" yerine "release-keys".
+# ro.build.tags buildinfo.sh tarafindan uretilir (DEFAULT_SYSTEM_DEV_CERTIFICATE
+# testkey -> test-keys). Ayni /system/build.prop icinde SONRA gelen satir
+# kazandigi icin (init LoadProperties map override, property_service.cpp:727)
+# bu deger test-keys'i gecerli sekilde ezer. Custom ROM'larin kullandigi deger.
+ro.build.tags=release-keys
+
+# --- Low-RAM / lmkd ek ince ayar -------------------------------------------
+# A10 lmkd (system/core/lmkd/lmkd.c) bu property'leri okur. Degerler stok
+# Samsung 8.1 (vstage/build.prop) ile hizali; ro.config.low_ram=true zaten acik.
+#   critical_upgrade=true : kritik esikte de process'ler upgrade edilebilsin.
+#   upgrade_pressure=40   : lmkd process'leri daha erken "upgrade" edip
+#                           bellegi bosaltir (1 GB cihazda faydali).
+ro.lmk.critical_upgrade=true
+ro.lmk.upgrade_pressure=40
+
+# --- ART/dexopt: depolama + bellek dengesi (stok 8.1 degerleri) -------------
+# downgrade_after_inactive_days=10: pasif uygulamalarin AOT kaydi 10 gun sonra
+#   "quicken"e dusurulur (yer + RAM tasarrufu).
+# shared=quicken: paylasilan/framework uygulamalari quicken modda derlenir
+#   (kurulum ve ilk-boot yuku azalir).
+pm.dexopt.downgrade_after_inactive_days=10
+pm.dexopt.shared=quicken
+# On plan (foreground) heap buyume carpani 2.0 (stok): GC sikligini azaltir.
+dalvik.vm.foreground-heap-growth-multiplier=2.0

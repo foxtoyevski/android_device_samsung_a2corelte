@@ -1,0 +1,17 @@
+# Android fstab for recovery.
+#
+# System-as-root (BOARD_BUILD_SYSTEM_ROOT_IMAGE := true): SYSTEM is the root
+# filesystem, so it is mounted at "/" instead of "/system".
+#
+# VENDOR must be listed: build/make/tools/releasetools/ota_from_target_files
+# iterates over system/vendor/product/odm/system_ext and calls
+# GetTypeAndDevice("/vendor") for every partition that has an image.
+# ODM is absent because no odm.img is produced by this product.
+/dev/block/platform/13540000.dwmmc0/by-name/SYSTEM    /         ext4    ro,errors=panic                 first_stage
+/dev/block/platform/13540000.dwmmc0/by-name/SYSTEM    /system   ext4    ro,errors=panic                 wait
+/dev/block/platform/13540000.dwmmc0/by-name/VENDOR    /vendor   ext4    ro,errors=panic                 first_stage
+/dev/block/platform/13540000.dwmmc0/by-name/USERDATA  /data     ext4    rw,nosuid,nodev,noatime,nosmtatime   wait,check
+/dev/block/platform/13540000.dwmmc0/by-name/CACHE     /cache    ext4    rw,nosuid,nodev,noatime,nosmtatime   wait,check
+/dev/block/platform/13540000.dwmmc0/by-name/EFS       /efs      ext4    rw,nosuid,nodev,noatime,nosmtatime   wait,check
+/dev/block/platform/13540000.dwmmc0/by-name/BOOT      /boot     emmc    defaults                           wait
+/dev/block/platform/13540000.dwmmc0/by-name/RECOVERY  /recovery emmc    defaults                           wait

@@ -1,0 +1,37 @@
+# RIL (Samsung/Oreo 32-bit yigini) init tanimlari.
+#
+# ONEMLI: bu agacda vendor property'leri uretilmiyor (bkz. device.mk
+# "RIL paths" notu). Bu yuzden service argumanlarindaki ${vendor.sec.rild.libpath}
+# ifadeleri dogrudan yola sabitlendi; init, property genisletemeyince
+# "cannot expand ..." hatasini verip servisi hic baslatmiyordu.
+#
+# Stok prebuilt rild (API 27) ek olarak su property'leri okuyor; erken
+# asamada setprop ile birakiliyor.
+on early-init
+    setprop vendor.sec.rild.libpath /vendor/lib/libsec-ril.so
+    setprop vendor.sec.rild.libpath2 /vendor/lib/libsec-ril-dsds.so
+    setprop rild.libpath /vendor/lib/libsec-ril.so
+    setprop rild.libargs -d
+    setprop exynos.ril.modempath /dev/block/mmcblk0p5
+    setprop exynos.ril.nvpath /efs/
+
+service ril-daemon /vendor/bin/hw/rild -l /vendor/lib/libsec-ril.so
+    class main
+    user radio
+    group radio cache inet misc audio sdcard_r sdcard_rw log vpn system readproc wakelock oem_5432
+    capabilities BLOCK_SUSPEND NET_ADMIN NET_RAW SYS_ADMIN CHOWN DAC_READ_SEARCH
+    socket sap_uim_socket1 stream 660 bluetooth bluetooth
+    # LD_LIBRARY_PATH Oreo32 gecici olarak devre disi
+    onrestart restart cpboot-daemon
+    disabled
+
+service ril-daemon1 /vendor/bin/hw/rild -c 2 -l /vendor/lib/libsec-ril-dsds.so
+    class main
+    user radio
+    group radio cache inet misc audio sdcard_r sdcard_rw log vpn system readproc wakelock oem_5432
+    capabilities BLOCK_SUSPEND NET_ADMIN NET_RAW SYS_ADMIN CHOWN DAC_READ_SEARCH
+    onrestart restart cpboot-daemon
+    disabled
+
+on property:ro.multisim.simslotcount=1
+    stop ril-daemon1

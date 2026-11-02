@@ -1,0 +1,29 @@
+# Samsung sswap / vnswap (sikistirilmis RAM swap) - universal7870-common'dan port.
+#
+# a2corelte, universal7870-common'i inherit ETMEDIGI icin bu domain tanimi
+# eksikti. init.msm? (init.samsungexynos7870.rc) icindeki
+#   service swapon /vendor/bin/sswap -s -f 1024
+#       seclabel u:r:sswap:s0
+# tanimli olmayan bir context'e isaret edince init servisi HIC baslatmiyordu ->
+# cihazda swap=0 (dogrulama: 'cat /proc/swaps' bos, SwapTotal: 0 kB).
+# Bu, 885 MB RAM'li cihazda bellek baskisini tetikleyip uygulama kasmasi/crash
+# oranini artiriyordu.
+type sswap, domain;
+type sswap_exec, exec_type, file_type, vendor_file_type;
+type sswap_device, dev_type;
+type sswap_prop, property_type;
+
+init_daemon_domain(sswap);
+
+allow sswap sswap_device:blk_file rw_file_perms;
+allow sswap sysfs_sswap:file rw_file_perms;
+allow sswap sysfs_sswap:dir search;
+allow sswap block_device:dir search;
+allow sswap self:capability sys_admin;
+
+allow sswap proc_meminfo:file r_file_perms;
+
+allow sswap properties_device:dir r_dir_perms;
+r_dir_file(sswap, proc_stat);
+
+set_prop(sswap, sswap_prop)

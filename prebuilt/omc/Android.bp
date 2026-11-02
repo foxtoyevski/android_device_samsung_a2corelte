@@ -1,0 +1,35 @@
+// Samsung OMC (CSC) dosyalari — SM-A260F (a2corelte).
+//
+// Bu dosyalar Samsung tarafindan SIFRELENMIS, gercek XML degiller:
+//   cscfeature.xml / cscfeature_network.xml -> ilk 4 bayt 2f 27 29 b7
+//   default_application_order.xml           -> icerik yalnizca "null"
+//
+// PRODUCT_COPY_FILES ile kopyalandiklarinda build, girdinin HEDEF ucu .xml
+// oldugu icin (build/make/core/Makefile:37) copy-xml-file-checked kuralini
+// seciyor ve xmllint "parser error : Start tag expected" ile build'i
+// durduruyor. Kaynak ucunu .xml disi bir uzantiya cevirmek yardim etmiyor,
+// cunku tetikleyen hedef uzantisidir.
+//
+// Prebuilt modulu olarak tanimlayip PRODUCT_PACKAGES ile kuruyoruz; boylece
+// xmllint hic devreye girmez ve dosyalar sifreli icerikleriyle korunur.
+
+prebuilt_etc {
+    name: "a2c-omc-cscfeature",
+    src: "cscfeature.xml.enc",
+    sub_dir: "omc/TUR/conf",
+    filename: "cscfeature.xml",
+}
+
+prebuilt_etc {
+    name: "a2c-omc-cscfeature-network",
+    src: "cscfeature_network.xml.enc",
+    sub_dir: "omc/TUR/conf",
+    filename: "cscfeature_network.xml",
+}
+
+prebuilt_etc {
+    name: "a2c-omc-default-application-order",
+    src: "default_application_order.xml.bin",
+    sub_dir: "omc/TUR/etc",
+    filename: "default_application_order.xml",
+}

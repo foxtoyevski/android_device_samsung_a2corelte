@@ -1,0 +1,63 @@
+# Otomatik uretildi: FIX-YEDEK/selinux/avc2te.py
+# Kaynak: cihazin permissive boot'unda biriken "avc: denied" kayitlari
+# (dmesg). Global Enforcing'e gecis icin gerekli allow kurallari.
+# Yeni denial cikinca: avc2te.py ile yeniden uret veya buraya ekle.
+#
+# Not: init/vendor_init/fsck* hala permissive oldugu icin onlarin kaynak
+# oldugu denials BILEREK disarida birakildi (--skip-scontext).
+#
+# Not: Asagidaki stok-blob kaynakli domain'ler permissive birakildigi icin
+# (bkz. permissive.te) onlarin neverallow'a takilan kurallari burada YOK:
+#   gatekeeperd (vendor_file), hal_memtrack_default (debugfs),
+#   hal_wifi_default / hal_wifi_supplicant_default (system_data_file),
+#   rild (system_file), hal_bluetooth_default (default_prop).
+# Bu domain'ler ileride tek tek relabel + allow ile enforcing'e alinabilir.
+
+# --- /dev/stune (schedtune) relabel --------------------------------
+# Bu cihazda /dev/stune tmpfs uzerinde duruyor; AOSP'nin "genfscon cgroup"
+# etiketi uygulanmadigi icin dosyalar genel "device" tipine dusuyordu ve
+# coredomain'ler foreground/tasks'a yazarken
+#   neverallow { coredomain ... } device:file no_rw_file_perms
+# yasagina takiliyordu. file_contexts ile "stune_file" tipine etiketlendi
+# (bkz. file.te, file_contexts).
+#
+# DIKKAT: cihaz sepolicy'si BOARD_SEPOLICY_DIRS ile VENDOR politikasina
+# derlenir; vendor pol yalnizca vendor + PUBLIC tipleri gorur. storaged/gsid
+# gibi PLAT-PRIVATE domain'ler tek tek yazilamaz (ne allow ne permissive).
+# "coredomain" ise PUBLIC bir attribute oldugu icin kullanilabilir; nihai
+# politikada storaged/gsid/zygote/netd/installd/system_server vb. tum cekirdek
+# domain'leri kapsar. (appdomain coredomain'e dahil DEGIL, bkz. domain.te.)
+# logd/logpersist/recovery_refresh/recovery_persist ise kendi neverallow'lari
+# geregi stune'a yazamaz; bunlar cikarilir (hepsi public tip, vendor pol'de
+# isimlendirilebilir).
+allow { coredomain -logd -logpersist -recovery_refresh -recovery_persist } stune_file:file rw_file_perms;
+
+# Dizin gecisi (traversal): AOSP'de "allow domain cgroup:dir search" karsiligi.
+# Uygulama domain'leri (untrusted_app/priv_app/system_app/platform_app) ve
+# zygote/mediaserver/mediaprovider /dev/stune altindaki tasks dosyalarina
+# ulasmak icin dizini search etmek zorunda (aksi halde "avc denied search
+# stune_file:dir" ile bloklanir).
+allow domain stune_file:dir search;
+
+# --- HAL'lar ---
+allow hal_audio_default imei_efs_file:dir { search };
+allow hal_audio_default imei_efs_file:file { getattr open read };
+allow hal_graphics_composer_default hal_graphics_composer_default:netlink_kobject_uevent_socket { bind create read setopt };
+allow hal_power_default sysfs_devices_system_cpu:file { write };
+allow hal_wifi_default efs_file:file { open read };
+allow hal_wifi_supplicant_default efs_file:file { open read };
+allow hwservicemanager init:dir { search };
+allow hwservicemanager init:file { open read };
+allow hwservicemanager init:process { getattr };
+
+# --- cekirdek servisler ---
+allow mediacodec sysfs:file { getattr open read };
+allow system_server init:fifo_file { write };
+allow vold rootfs:dir { setattr write };
+allow vold sysfs_sswap:file { write };
+allow cbd sysfs:file { open read };
+
+# --- medya / uygulamalar ---
+allow mediaprovider rootfs:dir { open read };
+allow mediaprovider rootfs:file { getattr };
+allow toolbox shell_data_file:file { getattr write };

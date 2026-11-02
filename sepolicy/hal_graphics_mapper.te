@@ -1,0 +1,84 @@
+# Graphics mapper passthrough HAL istemci policy'si.
+#
+# Neden eklendi
+# -------------
+# Bu agacta "hal_graphics_mapper" attribute grubu hic tanimli degildi. Sonuc
+# olarak HIDL mapper kutuphanesi hicbir domain tarafindan yuklenemiyordu:
+#
+#   avc: denied { execute map } for path="/vendor/lib/hw/android.hardware.graphics.mapper@2.0-impl.so"
+#     scontext=u:r:surfaceflinger:s0 tcontext=u:object_r:same_process_hal_file:s0
+#   W/Gralloc3: mapper 3.x is not supported
+#   F/GraphicBufferMapper: gralloc-mapper is missing
+#
+# "gralloc-mapper is missing" mesaji, GraphicBufferMapper'in preload()'inin
+# basarisiz oldugunu gosterir; HWUI bundan sonra cokuyor ve tum ekran siyah
+# kaliyor. Once "gralloc handle ABI uyusmazligi" sanildi, ancak gercek neden
+# mapper HAL'inin erisilebilir olmamasiydi.
+#
+# Neden passthrough_hal_client_domain (hal_client_domain degil)?
+# ------------------------------------------------------------
+# Android 10, graphics mapper'i yalnizca passthrough modda kabul eder.
+# Gralloc2Mapper ctor'inda:
+#
+#   if (mMapper->isRemote()) {
+#       LOG_ALWAYS_FATAL("gralloc-mapper must be in passthrough mode");
+#   }
+#
+# Yani mapper ayri bir HAL process'i olarak DEGIL, istemci sureci icinde
+# dlopen ile yuklenen bir kutuphanedir. Bu yuzden asagidaki makro kullanilir;
+# bu makro halclientdomain + vendor_file execute/map izinlerini verir ve
+# untrusted_app gibi uygulama domain'lerinde de calisir.
+#
+# NOT: burada sunucu domain'i (hal_graphics_mapper_default) ve ayri bir init
+# servisi YOKTUR. Bilesenler hal_server_domain ile kendi domain'ini kendisi
+# olusturur; bu portta tek gerekli olan istemci tarafi erisimidir.
+#
+# Once hal_graphics_mapper_default.te ile bir sunucu domain'i + init servisi
+# (android.hardware.graphics.mapper@2.0-service) eklenmisti, ancak passthrough
+# gerekliligi nedeniyle bu YANLIS olurdu: Gralloc2Mapper isRemote() gordugu
+# icin fatal verirdi. Servis kaldirildi, asagidaki client policy korundu.
+
+hal_attribute(graphics_mapper)
+
+# Framework/system surecleri.
+#
+# NOT: passthrough_hal_client_domain makrosu yerine elle kuruluyor. Makro
+# "vendor_file:file execute" veriyor, ancak bu cihaz full-Treble policy
+# kullaniyor ve domain.te'deki neverallow bunu yasakliyor:
+#
+#   neverallow { coredomain ... } vendor_file_type -same_process_hal_file:file execute;
+#
+#   libsepol: neverallow ... violated by allow surfaceflinger vendor_file:file { execute open };
+#
+# AOSP'nin de kullandigi dogru izin, mapper impl kutuphanesinin zaten
+# "same_process_hal_file" tipinde etiketlenmesidir
+# (system/sepolicy/vendor/file_contexts: ...mapper@2.0-impl.so -> same_process_hal_file).
+# Yalnizca o tipe execute/map vermek neverallow'a uyar ve yeterlidir.
+#
+# makro: passthrough_hal_client_domain(domain, hal_graphics_mapper)
+hal_client_domain(surfaceflinger, hal_graphics_mapper)
+hal_client_domain(system_server, hal_graphics_mapper)
+hal_client_domain(bootanim, hal_graphics_mapper)
+
+# Uygulama domain'leri. Samsung Mali in-process calistigi icin HWUI'yi kullanan
+# her surec mapper kutuphanesini kendisi yuklemek zorunda.
+hal_client_domain(untrusted_app, hal_graphics_mapper)
+hal_client_domain(system_app, hal_graphics_mapper)
+
+# Passthrough: istemci sureci impl kutuphanesini dlopen ile kendisi yukler.
+allow hal_graphics_mapper same_process_hal_file:file { read getattr execute open map };
+allow hal_graphics_mapper vendor_file:dir r_dir_perms;
+allow hal_graphics_mapper system_file:dir r_dir_perms;
+
+# Samsung kamera HAL'i, kamera 3.x mainatinanicil era servisini onune
+# bakmadan once mapper hwservice'ini getService ile sorguluyor. A10'da
+# hal_camera_default coredomain oldugu icin hwservice_manager find izni
+# vermek gerekir; aksi halde:
+#   E/CameraService: camera provider constructor: getService (mapper) failed
+allow hal_camera_default hal_graphics_mapper_hwservice:hwservice_manager find;
+
+# Mapper, gralloc0 modulunu dogrudan yukledigi icin GPU device'a da erisir
+# (/dev/mali0). Ayni kutuphaneye gpu_device erisimi verilmedigi surece
+# importBuffer/lock cagrilari basarisiz olur.
+allow hal_graphics_mapper gpu_device:chr_file rw_file_perms;
+

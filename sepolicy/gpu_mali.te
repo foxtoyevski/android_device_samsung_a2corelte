@@ -1,0 +1,105 @@
+# a2corelte (SM-A260F) portu: Mali-T720 MP2 GPU erisimi.
+#
+# Sorun
+# -----
+# Mali surucusu (/vendor/lib/egl/libGLES_mali.so) user-space surucusunu
+# basariyla yukleyiyor ancak kernel surucusunu ACAMIYOR:
+#
+#   E/mali: Failed creating base context during opening of kernel driver.
+#   E/mali: Kernel module may not have been loaded
+#   W/libEGL: eglInitialize(0x...) failed (EGL_NOT_INITIALIZED)
+#   F/OpenGLRenderer: Failed to create context, error = EGL_NOT_INITIALIZED
+#
+# Sebep SELinux etiketi: /dev/mali0 dugumu AOSP file_contexts'inde YOK
+# (AOSP'de Mali icin /dev/kgsl* tanimli, /dev/mali* tanimsiz). Bu yuzden
+# ueventd genel /dev/* kuraliyla dugumu "device" tipiyle etiketliyor:
+#
+#   avc: denied { read write } for path="/dev/mali0"
+#     scontext=u:r:bootanim:s0 tcontext=u:object_r:device:s0 tclass=chr_file
+#
+# Cozum: file_contexts'de /dev/mali0 -> gpu_device (bkz. file_contexts).
+# Asagidaki izinler etiketlenen tip icin gerekli domain'lere erisim verir.
+#
+# Neden uygulama domain'leri de gerekiyor?
+# Samsung/Mali suruculeri "in-process GPU" modeli kullanir: vendor'de ayri bir
+# EGL HAL kutuphanesi yok, /system/lib/libEGL.so dogrudan /vendor/lib/egl/
+# libGLES_mali.so'yu dlopen eder. Yani GPU surucusu UYGULAMA sureci
+# icinde calisir ve /dev/mali0'yi uygulama domain'i acar. AOSP'un
+# gpu_device modeli (ayri HAL domain'i, uygulamalara erisim yok) burada
+# gecerli degildir; AOSP'ta untrusted_app icin gpu_device neverallow'u
+# YOKTUR, bu yuzden asagidaki kurallar derlenir.
+# (app_zygote, isolated_app, webview_zygote, ephemeral_app ve crash_dump
+# icin AOSP neverallow'lari vardir; onlara bilerek dokunulmadi.)
+
+# Vendor grafik HAL'leri.
+# NOT: Android 10'da hal_graphics_default domain'i YOKTUR; GPU surucusu
+# ayri bir HAL domain'i degil, uygulama sureci icinde calisiyor (asagida
+# bkz.). Mevcut tek vendor grafik domain'leri composer ve allocator.
+allow hal_graphics_composer_default gpu_device:chr_file rw_file_perms;
+allow hal_graphics_allocator_default gpu_device:chr_file rw_file_perms;
+
+# Sistem surecleri.
+# surfaceflinger ve system_server icin gpu_device izni AOSP
+# private policy'de zaten var (surfaceflinger.te / system_server.te).
+allow bootanim gpu_device:chr_file rw_file_perms;
+allow gpuservice gpu_device:chr_file rw_file_perms;
+allow rs gpu_device:chr_file rw_file_perms;
+
+# Uygulama domain'leri (in-process GPU modeli).
+allow untrusted_app gpu_device:chr_file rw_file_perms;
+allow system_app gpu_device:chr_file rw_file_perms;
+allow platform_app gpu_device:chr_file rw_file_perms;
+
+# /dev/graphics dizini graphics_device tipiyle etiketli; A10 grafik allocator
+# HIDL'i bu dizini ariyor ve AOSP policy'sinde bu tip icin izin tanimli
+# degil:
+#   avc: denied { search } for name="graphics" dev="tmpfs"
+#     scontext=u:r:hal_graphics_allocator_default:s0
+#     tcontext=u:object_r:graphics_device:s0 tclass=dir
+allow hal_graphics_allocator_default graphics_device:dir { getattr open read search };
+allow hal_graphics_composer_default graphics_device:dir { getattr open read search };
+
+# /dev/fb0 de graphics_device tipinde etiketli. Stok Samsung gralloc'u frame
+# buffer'i dogrudan acar (AOSP A10 gralloc'u yapmaz), ve reddediliyor:
+#   avc: denied { read write } for name="fb0" dev="tmpfs"
+#     scontext=u:r:hal_graphics_allocator_default:s0
+#     tcontext=u:object_r:graphics_device:s0 tclass=chr_file
+# bu izin olmadan framebuffer uzerinden gosterge okuma/yazma basarisiz oluyor.
+allow hal_graphics_allocator_default graphics_device:chr_file rw_file_perms;
+
+# --- Stok Samsung HWC1.5 HAL'i (hwcomposer.exynos5.so) ------------------------
+# Onceki surumde vendor'da hwcomposer modulu YOKTI; HwcLoader bunu acamayinca
+# gralloc modulune "falling back" yapip HWC2OnFbAdapter kullaniyordu. Stok
+# Pie HWComposer kurulunca ve ro.hardware.hwc=exynos5 verilince asil Samsung
+# HAL'i devreye girdi ve su iki reddi devam etti:
+#
+# 1) vsync sysfs dugumu:
+#   I hwcomposer: Failed to open vsync attribute at
+#       /sys/devices/14830000.decon_fb/vsync
+#   E hwcomposer: failed to open vsync attribute
+#   E ComposerHal: failed to open hwcomposer device: Operation not permitted
+#   avc: denied { read } for name="vsync" dev="sysfs" ino=21815
+#     scontext=u:r:hal_graphics_composer_default:s0
+#     tcontext=u:object_r:sysfs:s0 tclass=file
+# HWC acilamadigi icin ComposerHal null donuyor ve service kaydedilmiyor;
+# surfaceflinger ekran acamadan cokuyor.
+allow hal_graphics_composer_default sysfs:file r_file_perms;
+
+# 2) Samsung Exynos secure/smem erisimi:
+#   avc: denied { read write } for name="s5p-smem" dev="tmpfs" ino=1424
+#     scontext=u:r:hal_graphics_composer_default:s0
+#     tcontext=u:object_r:device:s0 tclass=chr_file
+# s5p-smem, Exynos DMC/protection dongusunun paylasimli bellek arayuzu;
+# HWC overlay ve secure katmanlari icin gerekli.
+# NOT: "allow hal_graphics_composer_default device:chr_file" denendi ama
+# A10 policy'sindeki neverallow'a takildi:
+#   neverallow on line 443 of system/sepolicy/public/domain.te
+#     violated by allow hal_graphics_composer_default device:chr_file
+# Cozum: /dev/s5p-smem'i file_contexts'te graphics_device olarak etiketledik
+# (bkz. file_contexts) ve asagida o tipe erisim veriyoruz.
+allow hal_graphics_composer_default graphics_device:chr_file rw_file_perms;
+
+# /dev/video50, /dev/video51: Exynos GSC (scaler). HWC MPP ile katmanlari
+# olcekler; erisim yoksa "failed to create gscaler handle" + kamera preview
+# yesil/boş ekran olur. avc: hal_graphics_composer_default -> video_device.
+allow hal_graphics_composer_default video_device:chr_file rw_file_perms;

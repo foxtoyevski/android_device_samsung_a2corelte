@@ -1,0 +1,3 @@
+# sswap (vnswap) icin init yetkileri - universal7870-common'dan port.
+allow init sswap_device:blk_file write;
+allow init sysfs_sswap:file { open write };

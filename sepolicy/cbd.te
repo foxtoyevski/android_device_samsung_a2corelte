@@ -1,0 +1,53 @@
+# Samsung SSS310 modem boot daemon (cbd), ported from stock
+# nonplat_sepolicy.cil `cbd` domain + universal7870-common cpboot-daemon.te.
+# init.baseband.rc: service cpboot-daemon /vendor/bin/cbd ... seclabel u:r:cbd:s0
+type cbd, domain;
+type cbd_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(cbd)
+
+# own binary
+allow cbd cbd_exec:file { read getattr map execute open };
+
+# kernel log / reboot
+allow cbd kernel:system syslog_read;
+allow cbd kmsg_device:chr_file rw_file_perms;
+allow cbd self:capability { setuid setgid sys_boot };
+
+# modem firmware & control
+allow cbd radio_block_device:blk_file r_file_perms;
+allow cbd block_device:dir r_dir_perms;
+allow cbd radio_device:chr_file rw_file_perms;
+allow cbd mif_device:chr_file rw_file_perms;
+
+# /proc
+allow cbd proc_cmdline:file r_file_perms;
+allow cbd proc_dt_firmware_android:dir search;
+allow cbd proc_dt_firmware_android:file { open read };
+allow cbd proc:file r_file_perms;
+
+# sysfs
+allow cbd sysfs_wake_lock:file { read write open append getattr };
+
+# /efs
+allow cbd efs_file:dir r_dir_perms;
+allow cbd efs_file:file rw_file_perms;
+allow cbd cbd_log_data:dir rw_dir_perms;
+allow cbd cbd_log_data:file rw_file_perms;
+allow cbd bin_nv_data_efs_file:dir rw_dir_perms;
+allow cbd bin_nv_data_efs_file:file rw_file_perms;
+
+# data/log
+allow cbd log_vendor_data_file:dir rw_dir_perms;
+allow cbd log_vendor_data_file:file create_file_perms;
+
+# init / logd socket
+allow cbd init:unix_stream_socket connectto;
+allow cbd logd:unix_stream_socket connectto;
+allow cbd logdr_socket:sock_file write;
+allow cbd property_socket:sock_file write;
+allow cbd sysfs_mipi:file rw_file_perms;
+
+# properties
+set_prop(cbd, radio_prop)
+set_prop(cbd, system_prop)

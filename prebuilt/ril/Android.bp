@@ -1,0 +1,173 @@
+// Samsung RIL vendor blob'lari — SM-A260F (a2corelte, Exynos 7870).
+//
+// Bu kutuphaneler kaynak agacinda hicbir yerde tanimli degildi; cihaza elle
+// yukleniyordu. ROM'a paketlenmedigi icin modem katmani eksik kaliyor ve
+// SIM hic okunamiyordu.
+//
+// libsec-ril.so Samsung RIL v3.0'in modem surucusudur. libril (AOSP shim)
+// HIDL 1.1 kaydeder, ICC sorgusunu bu katmana iletir.
+//
+// ONEMLI: onceki surumdeki libsec-ril.so 2.668.788 baytti ve
+// product/on7xelte (Galaxy S7 / Exynos 8890) build'idi. A260F'nin modem
+// surucusu 2.374.044 bayt. S7 blob'u A260F ile modem protokolu
+// basina karsi sohbetmiyordu. Dogru blob'lar /vendor.img'den (p19)
+// cikarildi; eskiler old_s7/ altinda saklaniyor.
+//
+// rild iki varyant olarak duruyor:
+//   rild-a260f (20.404) — stok A260F. rilc_configure_thread_pool istiyor,
+//                           yalnizca stok Oreo libril.so'su sagliyor.
+//   rild       (20.268) — Samsungun Pie rild'i. rilc_configure istemiyor,
+//                           LOS16 agacindaki libril.so ile eslesiyor.
+// Birlikte link olsalar da hicbiri tek basina IRadio/slot1 kaydi uretmedi
+// (bkz. CHANGELOG bolum 7.3). Varsayilan rild-a260f: modem tarafinda
+// stok firmware ile birebir ayni oldugu icin SIM/CSC yolu en az degiskenle
+// dener.
+
+cc_prebuilt_library_shared {
+    name: "libsec-ril.so",
+    vendor: true,
+    srcs: ["libsec-ril.so"],
+    strip: {
+        none: true,
+    },
+}
+
+// libril.so prebuilt tanimi KALDIRILDI. hardware/ril/libril kaynak modulu
+// BOARD_PROVIDES_LIBRIL := true ile devre disi oldugu icin Soong tarafindan
+// uretilmiyor; ancak Android.bp'deki bu blok ile ayni hedefi alan
+// PRODUCT_COPY_FILES satiri ayni dosyayi iki komutla tanimliyordu
+// ("overriding commands for target"). Stok Oreo libril.so tek yoldan,
+// device.mk PRODUCT_COPY_FILES ile kurulacak. Dosya prebuilt/ril/libril.so
+// olarak duruyor.
+
+// libreference-ril.so ve librilutils.so prebuilt tanimlari da KALDIRILDI.
+// A10 agacinda hardware/ril/librilutils (kaynak, vendor:true) ve
+// hardware/ril/reference-ril (kaynak, vendor:true) ayni adda zaten var ve
+// ayni kurulum yolunu (/vendor/lib) kullaniyor. Ikisinin birden tanimli
+// olmasi ckati'de "overriding commands for target" hatasi veriyor.
+// Stok dosyalar bu dizinde duruyor (geri donus icin sakli).
+
+cc_prebuilt_library_shared {
+    name: "libsec-ril-dsds.so",
+    vendor: true,
+    srcs: ["libsec-ril-dsds.so"],
+    strip: {
+        none: true,
+    },
+}
+
+// librilutils.so ve libreference-ril.so stok prebuilt'ler KASITLI YOK:
+// A10 agacinda hardware/ril/librilutils (kaynak, vendor:true) ve
+// hardware/ril/reference-ril (kaynak, vendor:true) ayni adla zaten
+// vendor/lib/librilutils.so ve vendor/lib/libreference-ril.so uretiyor.
+// Prebuilt ikizler kurulum hedefinde cakisiyordu (base_rules override),
+// "kaynak kazanir" kurali geregi kaldirildi. Stok rild/libril/libsec-ril
+// seti PRODUCT_COPY_FILES + diger prebuilt modullerle geliyor.
+
+// librilutils.so ve libreference-ril.so stok dosyalari yerlerinde duruyor
+// (geri donus icin sakli); Android.mk ile kopyalanmasina gerek kalmadi.
+
+// librilutils.so ve libreference-ril.so stok prebuilt'ler KASITLI YOK:
+// A10 agacinda hardware/ril/librilutils (kaynak, vendor:true) ve
+// hardware/ril/reference-ril (kaynak, vendor:true) ayni adla zaten
+// vendor/lib/librilutils.so ve vendor/lib/libreference-ril.so uretiyor.
+// Prebuilt ikizler kurulum hedefinde cakisiyordu (base_rules override),
+// "kaynak kazanir" kurali geregi kaldirildi. Stok rild/libril/libsec-ril
+// seti PRODUCT_COPY_FILES + diger prebuilt modullerle geliyor.
+
+// librilutils.so ve libreference-ril.so stok dosyalari yerlerinde duruyor
+// (geri donus icin sakli); Android.mk ile kopyalanmasina gerek kalmadi.
+
+// librilutils.so ve libreference-ril.so stok prebuilt'ler KASITLI YOK:
+// A10 agacinda hardware/ril/librilutils (kaynak, vendor:true) ve
+// hardware/ril/reference-ril (kaynak, vendor:true) ayni adla zaten
+// vendor/lib/librilutils.so ve vendor/lib/libreference-ril.so uretiyor.
+// Prebuilt ikizler kurulum hedefinde cakisiyordu (base_rules override),
+// "kaynak kazanir" kurali geregi kaldirildi. Stok rild/libril/libsec-ril
+// seti PRODUCT_COPY_FILES + diger prebuilt modullerle geliyor.
+
+// librilutils.so ve libreference-ril.so stok dosyalari yerlerinde duruyor
+// (geri donus icin sakli); Android.mk ile kopyalanmasina gerek kalmadi.
+
+cc_prebuilt_library_shared {
+    name: "libvndsecril-client.so",
+    vendor: true,
+    srcs: ["libvndsecril-client.so"],
+    strip: {
+        none: true,
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libsecnativefeature.so",
+    vendor: true,
+    srcs: ["libsecnativefeature.so"],
+    strip: {
+        none: true,
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libaudio-ril.so",
+    vendor: true,
+    srcs: ["libaudio-ril.so"],
+    strip: {
+        none: true,
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libfloatingfeature.so",
+    vendor: true,
+    srcs: ["libfloatingfeature.so"],
+    strip: {
+        none: true,
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libsensorlistener.so",
+    vendor: true,
+    srcs: ["libsensorlistener.so"],
+    // NOT: once shared_libs: ["libsensorndkbridge"] ile agacin kaynak
+    // modulu (vendor:true) vendor'a kuruluyordu; bu, stok Oreo
+    // prebuilt'i ile cakisiyordu:
+    //   error: overriding commands for target
+    //   `out/target/product/a2corelte/vendor/lib/libsensorndkbridge.so'
+    // Artik libsensorndkbridge.so prebuilt/vendor/Android.bp icinde stok Oreo
+    // surumu olarak tanimli ve device.mk PRODUCT_PACKAGES ile kuruluyor.
+    // DT_NEEDED zinciri ayni sekilde cozuluyor (/vendor/lib altinda).
+    strip: {
+        none: true,
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "vendor.samsung.hardware.radio.channel@1.0_vendor.so",
+    vendor: true,
+    srcs: ["vendor.samsung.hardware.radio.channel@1.0_vendor.so"],
+    strip: {
+        none: true,
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "vendor.samsung.hardware.radio.secoemhook@1.0_vendor.so",
+    vendor: true,
+    srcs: ["vendor.samsung.hardware.radio.secoemhook@1.0_vendor.so"],
+    strip: {
+        none: true,
+    },
+}
+
+// "rild" bu dizinde Soong modulu olarak tanimlanmiyor. Iki neden:
+//  1) Modul adi hardware/ril/rild (kaynak) ile cakisiyor; stem'i de
+//     cc_prebuilt_binary desteklemediği icin ad degistirmek sessizce
+//     /vendor/bin/hw/rild'i yanlis dosya ile birakirdi.
+//  2) rild-a260f (20,404 bayt) rilc_configure_thread_pool sembolunu
+//     istiyor; Pie libril.so bu sembolu DIŞARI vermiyor, dolayisiyla
+//     stok A260F loader'ı ile calistirilamaz.
+// Dogru eslesme: Pie libril.so (rilc_thread_pool + registerService) <->
+// rild 20,268 (yalnizca rilc_thread_pool/ril_service_name istiyor).
+// Bu yuzden rild, PRODUCT_COPY_FILES ile /vendor/bin/hw/rild olarak
+// paketleniyor; asil A260F vendor RIL kodu libsec-ril.so'dur (-l argumani).

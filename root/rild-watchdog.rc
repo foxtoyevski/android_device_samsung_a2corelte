@@ -1,0 +1,25 @@
+# RIL boot-race watchdog v3.
+#
+# Arka plan: rild (libsec-ril) CP shmem session'unu YALNIZCA boot penceresinde
+# kurabiliyor (boot_done ~20s dogru an; boot_completed rest 5/5 OUT_OF_SERVICE
+# verdi; rild restart SIM'i UNKNOWN'a sokuyor ve kurtarmiyor). Nadiren CP
+# handshake kurulamaz veya rild crash olur -> tek care reboot.
+#
+# v3 davranisi (bkz. rild-watchdog.sh):
+#   - SADECE kesin/kurtarilamaz hata modunda (SIM UNKNOWN) reboot eder.
+#   - IN_SERVICE 2 ardisik ornekte gorulmeden "saglikli" sayilmaz (debounce);
+#     tek bir gecici blip'e aldanmaz.
+#   - "Servis yok" tek basina reboot nedeni DEGIL (ilk-boot LTE attach birkac
+#     dakika surebilir; kapsama disi olabilir) -> yanlis-pozitif yok.
+#   - Reboot denemesi (bayrak) sonrasi izlemeye devam eder; cihazi izleyicisiz
+#     birakmaz.
+
+service rild-watchdog /system/bin/sh /vendor/bin/rild-watchdog.sh
+    class late_start
+    user root
+    group root
+    disabled
+    oneshot
+
+on property:sys.boot_completed=1
+    start rild-watchdog

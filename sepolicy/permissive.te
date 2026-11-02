@@ -1,0 +1,36 @@
+# SELinux durumu: GLOBAL ENFORCING.
+# Asagidaki domain'ler GECICI olarak permissive birakildi (stok Oreo vendor
+# blob'larina bagimli; A10 platform politikasi bu blob'larin yaptigi tum
+# islemleri kapsamiyor). Geri kalan TUM domain'ler enforcing.
+#
+#   init / vendor_init : acilista vendor init script'leri stok yollari
+#       kullaniyor; allow kurallariyla tek tek kapatmak yerine simdilik
+#       permissive. Zamanla kaldirilabilir.
+#   fsck / fsck_untrusted : boot mount_all asamasinda CACHE/USERDATA/EFS blok
+#       aygitlari vendor file_contexts ile "block_device" olarak etiketli;
+#       e2fsck bu hedefte denied alip basarisiz oluyor, mount_fstab() erken
+#       donuyor ve zygote hic baslamiyordu (bkz. boottime.init.mount_all.default
+#       bos). Gercek cozum etiketleme/type duzeltmesi ister; o gelene kadar
+#       bu iki domain permissive.
+#   Stok HAL blob'lari : asagidaki HAL/servisler A10 policy'sinde "neverallow"
+#       ile yasaklanmis erisimler yapiyor (generic vendor_file / system_file /
+#       system_data_file / debugfs / default_prop). Allow eklemek DERLENEMEZ
+#       (neverallow), dogru cozum bu yollari ozel tipe relabel etmektir; o
+#       calisma tamamlanana kadar bu domain'ler permissive:
+#         gatekeeperd                  -> vendor_file (impl .so)
+#         hal_memtrack_default         -> debugfs (/sys/kernel/debug/ion|mali)
+#         hal_wifi_default             -> system_data_file (/data/misc/conn)
+#         hal_wifi_supplicant_default  -> system_data_file (/data/misc/conn)
+#         rild                         -> system_file (/system/omc .../etc)
+#         hal_bluetooth_default        -> default_prop (persist.bluetooth_fw_ver)
+permissive init;
+permissive vendor_init;
+permissive fsck;
+permissive fsck_untrusted;
+
+permissive gatekeeperd;
+permissive hal_memtrack_default;
+permissive hal_wifi_default;
+permissive hal_wifi_supplicant_default;
+permissive rild;
+permissive hal_bluetooth_default;

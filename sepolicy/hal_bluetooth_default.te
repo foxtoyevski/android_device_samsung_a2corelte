@@ -1,0 +1,19 @@
+# Stock Samsung bluetooth HAL (VendorInterface) reads the device MAC from
+# /efs/bluetooth/bt_addr (ro.bt.bdaddr_path). EFS is mounted as efs_file;
+# without search on the mountpoint the HAL aborts with
+# "Open: No Bluetooth Address!" and the bt user-visible dialog
+# "Bluetooth keeps stopping". LOS full-Treble policy drops the legacy stock
+# grants, so add the minimal read/search on EFS + bluetooth_efs_file here.
+allow hal_bluetooth_default efs_file:dir search;
+allow hal_bluetooth_default efs_file:file r_file_perms;
+allow hal_bluetooth_default bluetooth_efs_file:dir search;
+allow hal_bluetooth_default bluetooth_efs_file:file r_file_perms;
+
+# rfkill state/type files (stock labels them sysfs_bluetooth_writable; we do
+# the same in file_contexts). The HAL drives BT power rail via these.
+allow hal_bluetooth_default sysfs_bluetooth_writable:file w_file_perms;
+allow hal_bluetooth_default sysfs_bluetooth_writable:dir search;
+
+# Bluetooth UART serial port (ttySAC0). AOSP grants hal_bluetooth only
+# uhid_device/hci_attach_dev; Samsung uses /dev/ttySAC0 (serial_device).
+allow hal_bluetooth_default serial_device:chr_file rw_file_perms;

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<omcInfo>
+  <contentType>0</contentType>
+  <version>SAOMC_SM-A260F_OJM_TUR_OO_0013</version>
+  <model>
+    <name>SM-A260F</name>
+  </model>
+  <common>
+    <charging>Charge</charging>
+    <networkBearer>All</networkBearer>
+    <optionalApp>checked</optionalApp>
+  </common>
+  <catalog>
+    <customer>yes</customer>
+    <customerEdition>ED0004</customerEdition>
+    <others>no</others>
+    <cscfeature>yes</cscfeature>
+    <cscfeaturenetwork>yes</cscfeaturenetwork>
+    <cp>no</cp>
+    <language>no</language>
+    <apps>no</apps>
+    <resources>no</resources>
+    <defaultWorkspace>no</defaultWorkspace>
+    <defaultApplicationOrder>no</defaultApplicationOrder>
+    <imsupdate>no</imsupdate>
+  </catalog>
+  <carrierList>
+    <carrierCount>4</carrierCount>
+    <carrier>
+      <mcc>286</mcc>
+      <mnc>01</mnc>
+      <networkName>TR Turkcell</networkName>
+    </carrier>
+    <carrier>
+      <mcc>286</mcc>
+      <mnc>01</mnc>
+      <subsetCode>590</subsetCode>
+      <networkName>KKTCELL</networkName>
+    </carrier>
+    <carrier>
+      <mcc>286</mcc>
+      <mnc>02</mnc>
+      <networkName>VODAFONE TR</networkName>
+    </carrier>
+    <carrier>
+      <mcc>286</mcc>
+      <mnc>03</mnc>
+      <networkName>Turk Telekom</networkName>
+    </carrier>
+  </carrierList>
+</omcInfo>

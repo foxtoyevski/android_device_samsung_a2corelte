@@ -1,0 +1,116 @@
+// Oreo kamera HAL'inin vendor namespace icinde cozulmesi icin gereken
+// A10 sistem kutuphaneleri — SM-A260F (a2corelte).
+//
+// SORUN:
+// Oreo `camera.universal7870_go.so` + A10 `libcamera_client.so` zinciri
+// `libgui.so` istiyor. Android 10'da vendor process'leri izole bir linker
+// namespace'inde calisir ve /system/lib'i GORMEZ. /system/etc/ld.config.29.txt
+// icindeki "vendor" bolumu:
+//   namespace.default.search.paths = /odm/${LIB} + /vendor/${LIB}
+// Sistem liblerine yalnizca iki izin listesi uzerinden erisilir:
+//   namespace.default.link.system.shared_libs  (24 lib)
+//   namespace.default.link.vndk.shared_libs    (268 lib)
+// `libgui.so` bu iki listede YOK -> kamera HAL'i sunucu surecinde
+//   E/vndksupport: dlopen failed: library "libgui.so" not found
+// hatasiyla yuklenemiyordu ve LegacyCameraProviderImpl'in mModule'u NULL
+// kalip CameraModule::notifyDeviceStateChange() null-deref ile provider'i
+// SIGSEGV ile dusuruyordu.
+//
+// COZUM:
+// Asagidaki 5 kutuphanenin agacin kendi A10 32-bit cikislari vendor'a
+// kopyalanir. Bagimliliklarinin tamami izin listelerinde oldugu icin baska
+// eksik kalmaz (toplam 1.14 MB).
+//
+// NOT — PRODUCT_COPY_FILES KULLANILAMAZ:
+// `android.frameworks.bufferhub@1.0.so` icin:
+//   error: overriding commands for target
+//   `out/target/product/a2corelte/vendor/lib/android.frameworks.bufferhub@1.0.so'
+// Bu yuzden 5 kutuphane de PRODUCT_COPY_FILES yerine Soong modulu olarak
+// tanimlanir ve HIDL bagimliligi `shared_libs` ile BEKLENIR. HIDL interface
+// modulleri Soong tarafindan zaten vendor_available sayildigi icin Soong
+// android.frameworks.bufferhub@1.0.so'yu vendor'a da kurar.
+// Modul adlari ".so" suffix'i ile verilir (bkz. prebuilt/ril/Android.bp) ki
+// agactaki ayni adli kaynak modulleri (libgui, libinput, ...) ile cakismasin.
+
+cc_prebuilt_library_shared {
+    name: "libgui.so",
+    vendor: true,
+    // Once A10'nin TAM /system/lib/libgui.so'si kopyalaniyordu. Onun ihtiyacı
+    // olan libandroidfw sembolü (PermissionCache) vendor'da yoktu ve ayrica
+    // libpdx_default_transport.so -> libselinux.so -> libpackagelistparser.so
+    // zincirini de vendor'a tasimayi gerektiriyordu. Bunun yerine Android 10'un
+    // kendi vendor guvenli varyanti kullaniliyor; DT_SONAME alanı libgui.so
+    // olarak yamalandı, böylece DT_NEEDED "libgui.so" doğru çözülür.
+    // Oreo kamera HAL zincirinin libgui'den istediği 17 sembolün 17'si de bu
+    // varyantta mevcut (ölçüldü: 0 eksik).
+    srcs: ["libgui.so"],
+    strip: {
+        none: true,
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libinput.so",
+    vendor: true,
+    srcs: ["libinput.so"],
+    strip: {
+        none: true,
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libbufferhub.so",
+    vendor: true,
+    srcs: ["libbufferhub.so"],
+    shared_libs: ["android.frameworks.bufferhub@1.0"],
+    strip: {
+        none: true,
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libbufferhubqueue.so",
+    vendor: true,
+    srcs: ["libbufferhubqueue.so"],
+    shared_libs: ["android.frameworks.bufferhub@1.0"],
+    strip: {
+        none: true,
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libpdx_default_transport.so",
+    vendor: true,
+    srcs: ["libpdx_default_transport.so"],
+    strip: {
+        none: true,
+    },
+}
+// Vendor'a kopyalanan TAM libbinder.so. A10'da libbinder VNDK olarak
+// sunuluyor ve vendor sureci VNDK kisitli varyanti yukliyor; o varyantta
+// android::PermissionCache::checkPermission disa cikmiyor. Bizim vendor'a
+// kopyaladigimiz libgui.so bu sembolu kullaniyor:
+//   E/vndksupport: cannot locate symbol
+//   "_ZN7android15PermissionCache15checkPermissionERKNS_8String16Eij"
+//   referenced by "/vendor/lib/libgui.so"
+// Tam surum /vendor/lib altinda oldugu icin once orada bulunuyor.
+// libbinderthreadstate.so, libbinder'in DT_NEEDED'i oldugu icin birlikte
+// kuruluyor; o da izin listesinde degil.
+cc_prebuilt_library_shared {
+    name: "libbinder.so",
+    vendor: true,
+    srcs: ["libbinder.so"],
+    shared_libs: ["libbinderthreadstate.so"],
+    strip: {
+        none: true,
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libbinderthreadstate.so",
+    vendor: true,
+    srcs: ["libbinderthreadstate.so"],
+    strip: {
+        none: true,
+    },
+}

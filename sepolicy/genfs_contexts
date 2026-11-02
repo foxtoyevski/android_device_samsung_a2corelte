@@ -1,0 +1,6 @@
+genfscon sysfs /devices/14800000.dsim/backlight/panel u:object_r:sysfs_light:s0
+genfscon sysfs /devices/virtual/leds u:object_r:sysfs_light:s0
+genfscon sysfs /devices/virtual/sec/sec_touchkey u:object_r:sysfs_light:s0
+
+# sswap / vnswap (sikistirilmis RAM swap) - universal7870-common'dan port.
+genfscon sysfs /devices/virtual/block/vnswap0   u:object_r:sysfs_sswap:s0

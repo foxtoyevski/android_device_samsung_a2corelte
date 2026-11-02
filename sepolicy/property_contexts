@@ -1,0 +1,12 @@
+# Samsung Secure World properties (from stock nonplat_property_contexts).
+sys.tzdaemon                                   u:object_r:tzdaemon_prop:s0
+
+# Samsung libbt-vendor HAL sets sys.bluetooth.tty at init; without a rule it
+# falls back to system_prop and the set is denied (HAL aborts with "status
+# == Status::SUCCESS check failed" in hci_layer_android). AOSP plat policy
+# already grants hal_bluetooth (attr incl. hal_bluetooth_default) the set on
+# bluetooth_prop, so labelling it here is enough.
+sys.bluetooth.tty                             u:object_r:bluetooth_prop:s0
+
+# sswap / vnswap - universal7870-common'dan port.
+persist.sys.swapoff                           u:object_r:sswap_prop:s0

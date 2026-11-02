@@ -1,0 +1,63 @@
+# Samsung RIL extra permissions (ported from universal7870-common rild.te /
+# stock nonplat). rild type itself is already in A10 core (system/sepolicy/vendor/rild.te).
+
+# Samsung rild reads core /data (settings_global.xml, opname.db, /data/misc/radio);
+# A10 treble neverallows allow this only via the sanctioned violator attribute.
+typeattribute rild data_between_core_and_vendor_violators;
+
+# /efs nv_data (stock: nv_data.bin -> cbd_log_data; common: bin_nv_data_efs_file)
+allow rild bin_nv_data_efs_file:file { rw_file_perms setattr unlink };
+allow rild cbd_log_data:file { rw_file_perms setattr };
+allow rild efs_file:dir r_dir_perms;
+allow rild app_efs_file:dir r_dir_perms;
+allow rild app_efs_file:file { rw_file_perms setattr };
+allow rild imei_efs_file:dir r_dir_perms;
+allow rild imei_efs_file:file r_file_perms;
+allow rild prov_efs_file:dir r_dir_perms;
+allow rild prov_efs_file:file r_file_perms;
+
+# samsung nv/fll ioctl (audit: ioctlcmd=0x6601/0x6602 on nv_data.bin, FLL.bin)
+allowxperm rild bin_nv_data_efs_file:file ioctl { 0x6601 0x6602 };
+allowxperm rild app_efs_file:file ioctl { 0x6601 0x6602 };
+
+# /data/system/users/0/settings_global.xml (Samsung rild airplane-mode check)
+allow rild system_data_file:dir getattr;
+allow rild system_data_file:file { getattr read open };
+
+# /data/misc/radio (file_contexts -> radio_data_file; mgzc + rild scratch)
+allow rild radio_data_file:dir rw_dir_perms;
+allow rild radio_data_file:file { create_file_perms lock };
+
+# /data/user_de/.../com.android.providers.telephony/opname.db (operator name)
+# (same radio_data_file label; create_file_perms covers read/write/open/ioctl/lock)
+
+# /proc/net tcp stats (tcp_netpm)
+allow rild proc_net:file rw_file_perms;
+
+# common: mount namespace dirs
+allow rild mnt_vendor_file:dir { getattr search };
+
+# /efs NV okuma icin DAC bypass (audit: capability=2 dac_read_search)
+allow rild rild:capability dac_read_search;
+
+# modem control channel (/dev/umts_*)
+allow rild mif_device:chr_file rw_file_perms;
+
+# RADIO partition (modem firmware image)
+allow rild radio_block_device:blk_file r_file_perms;
+allow rild block_device:dir search;
+
+# /data/vendor/secradio (RIL working data)
+allow rild radio_vendor_data_file:dir rw_dir_perms;
+allow rild radio_vendor_data_file:file create_file_perms;
+
+# /data/vendor/log (RIL logs)
+allow rild log_vendor_data_file:dir rw_dir_perms;
+allow rild log_vendor_data_file:file create_file_perms;
+
+# /proc qtaguid / net for data stats
+allow rild proc_qtaguid_stat:file r_file_perms;
+
+# properties
+get_prop(rild, exported_radio_prop)
+get_prop(rild, radio_prop)

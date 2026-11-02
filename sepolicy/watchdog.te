@@ -1,0 +1,5 @@
+# rild-watchdog.sh reboot bildirimi: script init(init domain sh) tarafindan
+# calisir ve setprop sys.powerctl reboot yapar. toybox setprop (toolbox
+# domain) property_socket sock write hakkina sahip degil; watchdog reboot
+# bildirimini bu izinle veririz. (powerctl_prop type'i system_sepolicy'de.)
+set_prop(toolbox, powerctl_prop);

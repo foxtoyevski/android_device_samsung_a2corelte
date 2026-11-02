@@ -1,0 +1,115 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SW-Configuration>
+    <MobileData>
+        <PublicName>SM-A260F</PublicName>
+    </MobileData>
+    <OmcYn>Y</OmcYn>
+    <MultiCode>OJM</MultiCode>
+    <CustomerDataSet>
+        <CSCName>A260FOJM</CSCName>
+        <CSCVersion>EAUI1</CSCVersion>
+        <NbCustomer>20</NbCustomer>
+        <CustomerData src="/Customer/ACR/customer.xml" />
+        <CustomerData src="/Customer/AFR/customer.xml" />
+        <CustomerData src="/Customer/BTC/customer.xml" />
+        <CustomerData src="/Customer/CPW/customer.xml" />
+        <CustomerData src="/Customer/DKR/customer.xml" />
+        <CustomerData src="/Customer/ECT/customer.xml" />
+        <CustomerData src="/Customer/EGY/customer.xml" />
+        <CustomerData src="/Customer/LYS/customer.xml" />
+        <CustomerData src="/Customer/MZV/customer.xml" />
+        <CustomerData src="/Customer/MID/customer.xml" />
+        <CustomerData src="/Customer/MWD/customer.xml" />
+        <CustomerData src="/Customer/SRR/customer.xml" />
+        <CustomerData src="/Customer/FWD/customer.xml" />
+        <CustomerData src="/Customer/TKD/customer.xml" />
+        <CustomerData src="/Customer/TUN/customer.xml" />
+        <CustomerData src="/Customer/TUR/customer.xml" />
+        <CustomerData src="/Customer/XFA/customer.xml" />
+        <CustomerData src="/Customer/XFE/customer.xml" />
+        <CustomerData src="/Customer/XFV/customer.xml" />
+        <CustomerData src="/Customer/XSG/customer.xml" />
+    </CustomerDataSet>
+    <OmcInfo>
+        <OmcCode>
+            <CustomerCode>ACR</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_ACR_OO_0014</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>AFR</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_AFR_OO_0013</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>BTC</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_BTC_OO_0004</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>CPW</CustomerCode>
+            <Version>SAOMC_SM-A260F_CPW_CPW_OO_0003</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>DKR</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_DKR_OO_0009</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>ECT</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_ECT_OO_0010</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>EGY</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_EGY_OO_0006</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>FWD</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_FWD_OO_0003</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>LYS</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_LYS_OO_0003</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>MID</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_MID_OO_0005</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>MWD</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_MWD_OO_0005</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>MZV</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_MZV_OO_0006</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>SRR</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_SRR_OO_0005</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>TKD</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_TKD_OO_0005</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>TUN</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_TUN_OO_0004</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>TUR</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_TUR_OO_0013</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>XFA</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_XFA_OO_0015</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>XFE</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_XFE_OO_0012</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>XFV</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_XFV_OO_0020</Version>
+        </OmcCode>
+        <OmcCode>
+            <CustomerCode>XSG</CustomerCode>
+            <Version>SAOMC_SM-A260F_OJM_XSG_OO_0001</Version>
+        </OmcCode>
+    </OmcInfo>
+</SW-Configuration>

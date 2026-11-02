@@ -1,0 +1,3 @@
+vendor.samsung.hardware.radio::IRadio                 u:object_r:hal_telephony_hwservice:s0
+vendor.samsung.hardware.radio.secoemhook::ISecOemHook  u:object_r:hal_telephony_hwservice:s0
+vendor.samsung.hardware.radio.channel::ISecChannel     u:object_r:hal_telephony_hwservice:s0
